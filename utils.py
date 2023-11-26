@@ -85,8 +85,6 @@ class MarkdownProcessor:
             markdown_notes.append(note)
 
         return markdown_notes, titles
-    
-
 
 class JSONProcessor:
     def __init__(self, json_data, vault_folder):
@@ -134,3 +132,59 @@ class JSONProcessor:
             file_name = f'{self.vault_folder}/{formatted_title}.md'
             with open(file_name, 'w', encoding='utf-8') as file:
                 file.write(markdown)
+
+class JSONProcessorSubFolders:
+    def __init__(self, json_data, vault_folder, copy_to_all_tags=False):
+        self.json_data = json_data
+        self.vault_folder = vault_folder
+        self.copy_to_all_tags = copy_to_all_tags
+
+    def format_title_for_filename(self, title):
+        return title.replace("/", "_").replace("\\", "_").replace(":", "_").replace("?", "_")
+
+    def process_json(self):
+        markdown_processor = MarkdownProcessor()
+
+        for item in tqdm(self.json_data, desc="Processing JSON Items"):
+            original_markdown = item['markdown']
+            title = item.get('title', 'Untitled')
+            tags = item.get('tags', [])
+            formatted_title = self.format_title_for_filename(title)
+
+            if markdown_processor.is_likely_misencoded_cyrillic(title):
+                title = markdown_processor.fix_encoding(title)
+
+            tags_string = ' '.join([f'#{tag}' for tag in tags])  # Format tags for Markdown
+
+            if not tags:
+                tags = ['Untagged']  # Default folder for untagged notes
+
+            for tag in tags:
+                tag_folder = os.path.join(self.vault_folder, tag)
+                images_folder = os.path.join(tag_folder, 'images')
+                image_downloader = ImageDownloader(images_folder)
+
+                if not os.path.exists(tag_folder):
+                    os.makedirs(tag_folder)
+
+                markdown = original_markdown
+                # Insert tags after the title
+                markdown = re.sub(r'(#[^\n]+\n)', r'\1' + tags_string + '\n\n', markdown, 1)
+
+                # Process images and update markdown
+                image_urls = re.findall(r'!\[\]\((https://[^\)]+)\)', markdown)
+                for image_url in image_urls:
+                    image_filename = image_downloader.download_image(image_url)
+                    if image_filename:
+                        local_image_path = os.path.join('images', image_filename)
+                        markdown = markdown.replace(image_url, local_image_path)
+
+                if markdown_processor.is_likely_misencoded_cyrillic(markdown):
+                    markdown = markdown_processor.fix_encoding(markdown)
+
+                file_path = os.path.join(tag_folder, f'{formatted_title}.md')
+                with open(file_path, 'w', encoding='utf-8') as file:
+                    file.write(markdown)
+
+                if not self.copy_to_all_tags:
+                    break
