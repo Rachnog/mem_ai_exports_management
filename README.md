@@ -23,10 +23,7 @@ To process an MD file, place your MD file in the `data/` directory and run the `
 
 Command to run the script:
 
-'''
-python process_md.py --markdown_file ./data/my_export.md --vault_folder exports/my_export
-'''
-
+```python process_md.py --markdown_file ./data/my_export.md --vault_folder exports/my_export```
 
 ### Processing JSON Files
 
@@ -34,10 +31,7 @@ To process a JSON file, place your JSON file in the `data/` directory and run th
 
 Command to run the script:
 
-'''
-python process_json.py --json_file ./data/my_export.json --vault_folder exports/my_export
-'''
-
+```python process_json.py --json_file ./data/my_export.json --vault_folder exports/my_export```
 
 Both scripts will create Markdown files with any linked images downloaded and stored in the `exports/my_export/images` directory. Image paths in the Markdown files will be updated to reference these local images.
 
